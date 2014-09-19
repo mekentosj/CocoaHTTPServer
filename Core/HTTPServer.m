@@ -769,4 +769,12 @@ static NSThread *bonjourThread;
 	        waitUntilDone:YES];
 }
 
+- (NSArray *)IPAddresses
+{
+    if (!asyncSocket)
+        return @[];
+    
+    return @[asyncSocket.localHost, @"127.0.0.1", @"localhost"];
+}
+
 @end

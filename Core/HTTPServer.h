@@ -202,4 +202,6 @@
 - (NSUInteger)numberOfHTTPConnections;
 - (NSUInteger)numberOfWebSocketConnections;
 
+- (NSArray *)IPAddresses;
+
 @end
