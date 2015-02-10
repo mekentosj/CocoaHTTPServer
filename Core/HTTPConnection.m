@@ -1823,6 +1823,26 @@ static NSMutableArray *recentNonces;
 }
 
 /**
+ * Work-around to the problem thtat CocoaHTTPServer craps out instead of return an error when it
+ * receives a chunk size tag that strtoull fails to parse as a hexadecimal number.
+ *
+ * A bespoke error code was introduced to make it easier to find the client side error which
+ * produced the duff chunk size tag.
+ */
+- (void)handleInvalidChunkSize
+{
+    HTTPLogWarn(@"HTTP Server: Error 442 - Bad Chunk Size (%@)", [self requestURI]);
+    
+    // Status Code 442 - Bad Chunk Size
+    HTTPMessage *response = [[HTTPMessage alloc] initResponseWithStatusCode:442 description:nil version:HTTPVersion1_1];
+    [response setHeaderField:@"Content-Length" value:@"0"];
+    [response setHeaderField:@"Connection" value:@"close"];
+    
+    NSData *responseData = [self preprocessErrorResponse:response];
+    [asyncSocket writeData:responseData withTimeout:TIMEOUT_WRITE_ERROR tag:HTTP_FINAL_RESPONSE];
+}
+
+/**
  * Called if we receive a HTTP request with a method other than GET or HEAD.
 **/
 - (void)handleUnknownMethod:(NSString *)method
@@ -2212,8 +2232,9 @@ static NSMutableArray *recentNonces;
 			if (errno != 0)
 			{
 				HTTPLogWarn(@"%@[%p]: Method expects chunk size, but received something else", THIS_FILE, self);
-				
-				[self handleInvalidRequest:nil];
+				// Empty response body
+                [self finishBody];
+				[self handleInvalidChunkSize];
 				return;
 			}
 			
